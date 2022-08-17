@@ -41,8 +41,7 @@ type SlimeState =
 
 stages :: Array Stage
 stages =
-  [ stage1
-  , tutorialStage1
+  [ tutorialStage1
   , tutorialStage2
   , tutorialStage3
   , tutorialStage4
