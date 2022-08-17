@@ -9,10 +9,10 @@ import Data.Tuple.Nested (type (/\), (/\))
 import Effect (Effect)
 import Effect.Class (liftEffect)
 import Hooks.UseClass (useClass)
-import Jelly (Component, Signal, ch, chsFor, chsSig, el, launchApp, modifyAtom_, signal, useEventListener, (:=))
+import Jelly (Component, Signal, ch, chsFor, chsSig, el, launchApp, modifyAtom_, signal, text, useEventListener, useSignal, writeAtom, (:=))
 import Jelly.Hooks.UseMemo (useMemo)
-import SlimeGame (Action(..), Direction(..), GameState(..), HorizontalDirection(..), SlimeSize(..), SlimeState, Tile(..), initState, stepState)
-import Stages (stage1)
+import SlimeGame (Action(..), Direction(..), GameState(..), HorizontalDirection(..), SlimeSize(..), SlimeState, Tile(..), initState, isClear, stepState)
+import Stages (stages, tutorialStage1)
 import Web.HTML (window)
 import Web.HTML.HTMLDocument (toEventTarget)
 import Web.HTML.Window (document)
@@ -24,11 +24,28 @@ main = do
 
 root :: Component Contexts
 root = el "div" do
-  useClass $ pure "h-screen w-screen bg-gray-500"
+  useClass $ pure "h-screen w-screen bg-gray-600"
 
-  useClass $ pure "flex justify-center items-center"
+  useClass $ pure "flex flex-col justify-center items-center gap-6"
 
-  gameStateSig /\ gameStateAtom <- signal $ initState $ stage1
+  stageNumSig /\ stageNumAtom <- signal 0
+
+  gameStateSig /\ gameStateAtom <- signal $ initState tutorialStage1
+
+  isAllClearSig <- useMemo $ (_ >= length stages) <$> stageNumSig
+
+  useSignal do
+    gameState <- gameStateSig
+    if isClear gameState then
+      liftEffect $ modifyAtom_ stageNumAtom $ \n -> n + 1
+    else
+      pure unit
+
+  useSignal do
+    stageNum <- stageNumSig
+    case stages !! stageNum of
+      Just stage -> liftEffect $ writeAtom gameStateAtom $ initState stage
+      Nothing -> pure unit
 
   heightSig <- useMemo $ (\(GameState { stage: { tiles } }) -> length tiles) <$>
     gameStateSig
@@ -55,8 +72,8 @@ root = el "div" do
         "e" -> stepState $ ActionMove $ Upward $ Right
         "a" -> stepState $ ActionMove $ Horizontal $ Left
         "d" -> stepState $ ActionMove $ Horizontal $ Right
-        "s" -> stepState $ ActionWait
         "z" -> stepState $ ActionUndo
+        "r" -> stepState $ ActionReset
         _ -> identity
       Nothing -> pure unit
 
@@ -87,6 +104,18 @@ root = el "div" do
     chsFor slimesWithIndexSig (\(i /\ _) -> Just $ show i) \slimeSignal ->
       slimeComponent slimeSignal playerSig
 
+  ch $ el "div" do
+    useClass $ pure "text-xl text-white"
+
+    ch $ text $ (\(GameState { stage: { title } }) -> title) <$>
+      gameStateSig
+
+  ch $ el "pre" do
+    useClass $ pure "text-md text-white"
+
+    ch $ text $ (\(GameState { stage: { description } }) -> description) <$>
+      gameStateSig
+
 slimeComponent
   :: (Signal (Int /\ SlimeState)) -> Signal Int -> Component Contexts
 slimeComponent slimeStateWithIndexSignal playerSig = el "div" $ do
@@ -101,7 +130,7 @@ slimeComponent slimeStateWithIndexSignal playerSig = el "div" $ do
   useClass $ pure "flex justify-center items-end"
 
   ch $ el "div" do
-    useClass $ pure "absolute rounded-xl transition-all duration-75"
+    useClass $ pure "absolute transition-all duration-75"
 
     slimeSizeSig <- useMemo $ (\(_ /\ { size }) -> size) <$>
       slimeStateWithIndexSignal
@@ -115,9 +144,9 @@ slimeComponent slimeStateWithIndexSignal playerSig = el "div" $ do
     useClass $ do
       slimeSize <- slimeSizeSig
       case slimeSize of
-        Small -> pure "h-[20px] w-[20px] bg-lime-600 opacity-30"
-        Medium -> pure "h-[42px] w-[42px] bg-lime-600 opacity-30"
-        Large -> pure "h-[62px] w-[62px] bg-lime-600 opacity-30"
+        Small -> pure "h-[20px] w-[20px] bg-lime-600 rounded-sm"
+        Medium -> pure "h-[42px] w-[42px] bg-lime-600 rounded-md"
+        Large -> pure "h-[62px] w-[62px] bg-lime-600 rounded-xl"
 
 damagePositionComponent
   :: Int /\ Int -> Component Contexts
@@ -147,22 +176,22 @@ tileComponent h w tile = el "div" do
   useClass $ pure "h-[64px] w-[64px]"
 
   case tile of
-    Wall -> useClass $ pure "bg-gray-500"
+    Wall -> useClass $ pure "bg-gray-600"
     Goal -> useClass $ pure "bg-cyan-200"
     VerticalRoad Small -> do
       ch $ el "div" do
-        useClass $ pure "absolute h-[64px] w-[20px] bg-gray-500"
+        useClass $ pure "absolute h-[64px] w-[20px] bg-gray-600"
       ch $ el "div" do
-        useClass $ pure "absolute h-[64px] w-[20px] bg-gray-500 left-[44px]"
+        useClass $ pure "absolute h-[64px] w-[20px] bg-gray-600 left-[44px]"
     VerticalRoad Medium -> do
       ch $ el "div" do
-        useClass $ pure "absolute h-[64px] w-[10px] bg-gray-500"
+        useClass $ pure "absolute h-[64px] w-[10px] bg-gray-600"
       ch $ el "div" do
-        useClass $ pure "absolute h-[64px] w-[10px] bg-gray-500 left-[54px]"
+        useClass $ pure "absolute h-[64px] w-[10px] bg-gray-600 left-[54px]"
     HorizontalRoad Small -> do
       ch $ el "div" do
-        useClass $ pure "absolute h-[40px] w-[64px] bg-gray-500"
+        useClass $ pure "absolute h-[40px] w-[64px] bg-gray-600"
     HorizontalRoad Medium -> do
       ch $ el "div" do
-        useClass $ pure "absolute h-[20px] w-[64px] bg-gray-500"
+        useClass $ pure "absolute h-[20px] w-[64px] bg-gray-600"
     _ -> pure unit

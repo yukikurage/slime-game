@@ -45,6 +45,8 @@ type Stage =
   , initSlimesState :: Array SlimeState
   , initDamagePositions :: Array (Int /\ Int)
   , initPlayer :: Int
+  , title :: String
+  , description :: String
   }
 
 data Tile
@@ -56,7 +58,7 @@ data Tile
 
 derive instance Eq Tile
 
-data Action = ActionMove Direction | ActionWait | ActionUndo
+data Action = ActionMove Direction | ActionWait | ActionUndo | ActionReset
 
 derive instance Eq Action
 
@@ -87,8 +89,9 @@ canProceed size tile = case tile of
 computeEffect :: GameState -> GameState
 computeEffect gameState@(GameState state) =
   let
-    newSlimes = mapWithIndex (\i s -> computeDamage i $ computeFalls s)
-      state.slimes
+    newSlimesFallen = map computeFalls state.slimes
+    newSlimes = mapWithIndex computeDamage
+      newSlimesFallen
     computeDamage i slime =
       let
         (h /\ w) = slime.position
@@ -120,7 +123,7 @@ computeEffect gameState@(GameState state) =
       Nothing -> state.player
     newDamagePositions = filter
       ( \pos -> not $ any (\s -> s.position == pos)
-          newSlimes
+          newSlimesFallen
       )
       state.damagePositions
   in
@@ -133,6 +136,7 @@ computeEffect gameState@(GameState state) =
 stepState :: Action -> GameState -> GameState
 stepState action gameState@(GameState state) = case action of
   ActionUndo -> fromMaybe gameState state.prevState
+  ActionReset -> initState state.stage
   _ ->
     let
       newSlimes = case action of
@@ -154,7 +158,12 @@ stepState action gameState@(GameState state) = case action of
             isEmpty =
               ( canProceed shouldEmptySize <$> indexWithSlime gameState
                   shouldEmptyPosition
-              ) == Just true
+              ) == Just true &&
+                ( canProceed playerSlime.size <$>
+                    ( (state.stage.tiles !! fst targetPosition) >>=
+                        (_ !! snd targetPosition)
+                    )
+                ) == Just true
           in
             if isEmpty then
               mapWithIndex
