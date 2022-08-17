@@ -41,7 +41,8 @@ type SlimeState =
 
 stages :: Array Stage
 stages =
-  [ tutorialStage1
+  [ stage1
+  , tutorialStage1
   , tutorialStage2
   , tutorialStage3
   , tutorialStage4
@@ -189,11 +190,11 @@ stage1 =
       , [ em, em, em, em, em, em, em, em, em, em, em, em, em ]
       , [ em, em, em, em, em, em, em, em, em, em, em, em, em ]
       , [ em, em, em, em, em, em, em, em, em, em, em, em, em ]
-      , [ wa, wa, wa, vs, wa, wa, wa, wa, wa, vm, wa, wa, wa ]
-      , [ wa, hs, hm, em, wa, em, em, em, wa, em, hm, hs, wa ]
+      , [ wa, wa, wa, vs, wa, wa, wa, wa, wa, vm, wa, em, wa ]
+      , [ em, em, em, em, wa, em, em, em, wa, em, em, em, em ]
       , [ em, em, em, em, hs, em, go, em, hs, em, em, em, em ]
-      , [ em, em, em, em, wa, em, wa, em, wa, em, em, em, em ]
       , [ em, em, em, em, wa, wa, wa, wa, wa, em, em, em, em ]
+      , [ em, em, em, em, em, em, em, em, em, em, em, em, em ]
       , [ em, em, em, em, em, em, em, em, em, em, em, em, em ]
       ]
   , title: "ステージ 1: 隔離"
