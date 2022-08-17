@@ -9,7 +9,7 @@ import Data.Tuple.Nested (type (/\), (/\))
 import Effect (Effect)
 import Effect.Class (liftEffect)
 import Hooks.UseClass (useClass)
-import Jelly (Component, Signal, ch, chsFor, chsSig, el, launchApp, modifyAtom_, signal, text, useEventListener, useSignal, writeAtom, (:=))
+import Jelly (Component, Signal, ch, chIf, chWhen, chsFor, chsSig, el, launchApp, modifyAtom_, signal, text, useEventListener, useSignal, writeAtom, (:=))
 import Jelly.Hooks.UseMemo (useMemo)
 import SlimeGame (Action(..), Direction(..), GameState(..), HorizontalDirection(..), SlimeSize(..), SlimeState, Tile(..), initState, isClear, stepState)
 import Stages (stages, tutorialStage1)
@@ -79,7 +79,7 @@ root = el "div" do
 
   useEventListener "keydown" listener (toEventTarget htmlDocument)
 
-  ch $ el "div" do
+  chIf isAllClearSig allClearComponent $ el "div" do
 
     useClass $ pure "relative bg-white"
 
@@ -104,17 +104,23 @@ root = el "div" do
     chsFor slimesWithIndexSig (\(i /\ _) -> Just $ show i) \slimeSignal ->
       slimeComponent slimeSignal playerSig
 
-  ch $ el "div" do
+  chWhen (not <$> isAllClearSig) $ el "div" do
     useClass $ pure "text-xl text-white"
 
     ch $ text $ (\(GameState { stage: { title } }) -> title) <$>
       gameStateSig
 
-  ch $ el "pre" do
+  chWhen (not <$> isAllClearSig) $ el "pre" do
     useClass $ pure "text-md text-white"
 
     ch $ text $ (\(GameState { stage: { description } }) -> description) <$>
       gameStateSig
+
+allClearComponent :: Component Contexts
+allClearComponent = el "div" do
+  useClass $ pure "text-4xl text-white"
+
+  ch $ text $ pure "All Clear!"
 
 slimeComponent
   :: (Signal (Int /\ SlimeState)) -> Signal Int -> Component Contexts
